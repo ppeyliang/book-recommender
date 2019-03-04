@@ -16,6 +16,7 @@ from surprise import KNNWithZScore
 app = Flask(__name__)
 CORS(app)
 
+
 @app.route('/recommend', methods=['POST'])
 def recommend():
     # Append new ratings to DataFrame.
@@ -30,7 +31,7 @@ def recommend():
 
     reader = Reader(rating_scale=(1, 10))
     data = Dataset.load_from_df(all_data, reader)
-    
+
     # Calculate similarity matrix.
     testSubject = 0
     k = 20
@@ -47,7 +48,7 @@ def recommend():
     for innerID, score in enumerate(similarityRow):
         if (innerID != testUserInnerID):
             similarUsers.append((innerID, score))
-            
+
     kNeighbors = heapq.nlargest(k, similarUsers, key=lambda t: t[1])
 
     # Get the items that similar users rated.
@@ -69,14 +70,15 @@ def recommend():
             sim_sum += similarity
         pred_rating = sim_rating / sim_sum
         candidates[item_inner_id] = pred_rating
-        
+
     # Build a dictionary of items the user has already read.
     read = {}
     for itemID, rating in trainset.ur[testUserInnerID]:
         read[itemID] = 1
-    
+
     # Make recommendation.
-    results = {'book_id': [], 'title': [], 'author': [], 'year': [], 'image': []}
+    results = {'book_id': [], 'title': [],
+               'author': [], 'year': [], 'image': []}
     pos = 0
 
     for itemID, rating in sorted(candidates.items(), key=itemgetter(1), reverse=True):
@@ -97,6 +99,7 @@ def recommend():
     output = pd.DataFrame(results)
 
     return output.to_json(orient='records').replace('\\', '')
+
 
 if __name__ == '__main__':
     app.run()
