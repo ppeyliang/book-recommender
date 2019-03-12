@@ -27,13 +27,13 @@ def recommend():
     df = cf[['user', 'ISBN', 'rating']]
     books = json.dumps(request.json)
     df_new = pd.read_json(books, orient='split')
-    all_data = pd.concat([df, df_new]).drop_duplicates()
+    all_data = pd.concat([df, df_new]).drop_duplicates().reset_index(drop=True)
 
     reader = Reader(rating_scale=(1, 10))
     data = Dataset.load_from_df(all_data, reader)
 
     # Calculate similarity matrix.
-    testSubject = 0
+    testSubject = 2033
     k = 20
     trainset = data.build_full_trainset()
     sim_options = {'name': 'cosine', 'user_based': True}
@@ -62,9 +62,10 @@ def recommend():
 
     # Predict ratings for each item, weighted by user similarity.
     candidates = defaultdict(float)
+
+    sim_rating = 0
+    sim_sum = 0
     for item_inner_id, ratings in results.items():
-        sim_rating = 0
-        sim_sum = 0
         for similarity, rating in ratings:
             sim_rating += similarity * rating
             sim_sum += similarity
@@ -79,7 +80,6 @@ def recommend():
     # Make recommendation.
     results = {'book_id': [], 'title': [],
                'author': [], 'year': [], 'image': []}
-    pos = 0
 
     for itemID, rating in sorted(candidates.items(), key=itemgetter(1), reverse=True):
         if not itemID in read:
@@ -93,10 +93,8 @@ def recommend():
             results['author'].append(author)
             results['year'].append(int(year))
             results['image'].append(image)
-            pos += 1
-            if (pos == k):
-                break
-    output = pd.DataFrame(results)
+
+    output = pd.DataFrame(results).head(20)
 
     return output.to_json(orient='records').replace('\\', '')
 
